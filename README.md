@@ -708,6 +708,105 @@ python CRC_contrastive_loss_main.py \
     --output_root './results/contrastive_loss_v1'
 ```
 
+##### Her2ST
+In **./5.Patch_spatial_gene_prediction/Her2ST** directory
+The legacy ST-format [Her2ST](https://zenodo.org/records/4751624) samples are stored in ​**​./5.Patch_spatial_gene_prediction/Her2ST/dataset/legacy_ST_format​**​. Converted HEST-fortmat Her2ST samples are stored in ​**​./5.Patch_spatial_gene_prediction/Her2ST/dataset/HEST_format​**.
+
+```bash
+python Her2ST_HEST_setup.py
+```
+Extracted features by CHIEF, GigaPath and UNI models are saved in ​**​./5.Patch_spatial_gene_prediction/Her2ST/embedding_features​**:
+
+```bash
+python get_breast_ST_feature_CHIEF.py \
+    --model 'CHIEF' \
+    --bench_data_root './dataset/HEST_format' \
+    --save_h5_root './embedding_features'
+
+python get_breast_ST_feature_UNI_GigaPath.py \
+    --model 'GigaPath' \
+    --bench_data_root './dataset/HEST_format' \
+    --save_h5_root './embedding_features'
+
+python get_breast_ST_feature_UNI_GigaPath.py \
+    --model 'UNI' \
+    --bench_data_root './dataset/HEST_format' \
+    --save_h5_root './embedding_features'
+```
+
+We run the following script to merge the features from three models for each sample into a single file, which is stored in ​**​5.Patch_spatial_gene_prediction/Her2ST/embedding_features/merged​**​.
+```bash
+python Her2ST_features_merge.py
+```
+
+##### Single foundation model
+- CHIEF
+```bash
+python breast_single_concat_main.py \
+    --feature_type 'CHIEF' \
+    --batch_size 512 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/CHIEF_v1'
+```
+
+For GigaPath and UNI model​​, we only need to adjust the **--feature_type** to 'GigaPath' & 'UNI' and the **--output_root** to corresponding folder name, and all other parameters are kept the same.
+
+##### Concatenation
+```bash
+python breast_single_concat_main.py \
+    --feature_type 'Concat' \
+    --batch_size 512 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/Concat_v1'
+```
+
+##### Self-attention
+```bash
+python breast_self_attention_main.py \
+    --feature_num 3328 \
+    --embed_dim 1024 \
+    --num_heads 8 \
+    --batch_size 512 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/self_attention_v1'
+```
+
+##### Cross-attention
+```bash
+python breast_cross_attention_main.py \
+    --features_list 'GigaPath' 'UNI' 'CHIEF' \
+    --embed_dim 1024 \
+    --num_heads 8 \
+    --batch_size 512 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/cross_attention_v1'
+```
+
+```bash
+python breast_contrastive_loss_main.py \
+    --features_list 'GigaPath' 'UNI' 'CHIEF' \
+    --embed_dim 1024 \
+    --batch_size 256 \
+    --epochs_num 10 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --contrastive_weight 0.5 \
+    --output_root './results/contrastive_loss_v1'
+```
+
 #### VI. High-dimensional bulk gene expression prediction based on WSI-level features
 In **./6.WSI_bulk_gene_prediction** directory
 
