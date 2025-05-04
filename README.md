@@ -527,6 +527,190 @@ python TCGA_mutation_self_attention_main.py \
     --embed_dim 1024 \
     --num_heads 8
 ```
+#### V. High-dimensional spatial gene expression prediction using patch-level features
+##### HEST-benchmark
+In **./5.Patch_spatial_gene_prediction/HEST-benchmark** directory
+
+The [HEST-benchmark](https://huggingface.co/datasets/MahmoodLab/hest-bench) defines nine tasks using data from eight human cancer types across nine organs, including eight primary and one metastatic dataset[7]. The downloaded dataset is saved in folder **./5.Patch_spatial_gene_prediction/HEST-benchmark/hest-bench**. Three patch-level foundation models were used to extract features from the patches in HEST-benchmark. The extracted features are stored in folders **CHIEF**, **GigaPath**, and **UNI** under **5.Patch_spatial_gene_prediction/HEST-benchmark/embedding_features**. Each folder contains 9 subfolders named after the respective tasks, including CCRCC, COAD, HCC, IDC, LUNG, LYMPH_IDC, PAAD, PRAD, READ, and SKCM. For each task, the information and extracted features of every ST sample are saved as individual .h5 files.
+
+We run the following script to merge the features from three models for each sample into a single file, which is stored in ​**​5.Patch_spatial_gene_prediction/HEST-benchmark/embedding_features/merged​**​.
+
+```bash
+python benchmark_features_merge.py
+```
+
+##### Single foundation model
+- CHIEF
+```bash
+python HEST_single_concat_main.py \
+    --feature_type 'CHIEF' \
+    --batch_size 512 \
+    --epochs_num 50 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/CHIEF_v1' 
+```
+
+For GigaPath and UNI model​​, we only need to adjust the **--feature_type** to 'GigaPath' & 'UNI' and the **--output_root** to corresponding folder name, and all other parameters are kept the same.
+
+##### Concatenation
+```bash
+python HEST_single_concat_main.py \
+    --feature_type 'Concat' \
+    --batch_size 512 \
+    --epochs_num 50 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/Concat_v1'
+```
+
+##### Self-attention
+```bash
+python HEST_self_attention_main.py \
+    --feature_num 3328 \
+    --embed_dim 1024 \
+    --num_heads 8 \
+    --batch_size 512 \
+    --epochs_num 50 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/self_attention_v1'
+```
+
+##### Cross-attention
+```bash
+python HEST_cross_attention_main.py \
+    --features_list 'GigaPath' 'UNI' 'CHIEF' \
+    --embed_dim 1024 \
+    --num_heads 8 \
+    --batch_size 512 \
+    --epochs_num 50 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/cross_attention_v1'
+```
+
+##### Contrastive-loss
+```bash
+python HEST_contrastive_loss_main.py \
+    --features_list 'GigaPath' 'UNI' 'CHIEF' \
+    --embed_dim 1024 \
+    --batch_size 256 \
+    --epochs_num 25 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --contrastive_weight 0.1 \
+    --output_root './results/contrastive_loss_v1'
+```
+
+##### CRC-inhouse
+In **./5.Patch_spatial_gene_prediction/CRC-inhouse** directory
+First, convert the 10x Visium ST data into HEST format, then we extract features of the spot-corresponding patch regions using different patch-level foundation models.
+
+The Visium-format CRC-inhouse samples are stored in ​**​./5.Patch_spatial_gene_prediction/CRC-inhouse/dataset/Visium_format​**​, with each sample as an individual folder containing filtered_feature_bc_matrix.h5, a spatial folder, and the high-resolution histology image (HE_image/histology.tiff). Converted HEST-fortmat CRC-inhouse samples are stored in ​**​./5.Patch_spatial_gene_prediction/CRC-inhouse/dataset/HEST_format​**.
+```bash
+python CRC_HEST_setup.py
+```
+Extracted features by CHIEF, GigaPath and UNI models are saved in ​**​./5.Patch_spatial_gene_prediction/CRC-inhouse/embedding_features​**:
+```bash
+python get_ST_feature_CHIEF.py \
+    --model 'CHIEF' \
+    --bench_data_root './dataset/HEST_format' \
+    --save_h5_root './embedding_features'
+
+python get_ST_feature_UNI_GigaPath.py \
+    --model 'GigaPath' \
+    --bench_data_root './dataset/HEST_format' \
+    --save_h5_root './embedding_features'
+
+python get_ST_feature_UNI_GigaPath.py \
+    --model 'UNI' \
+    --bench_data_root './dataset/HEST_format' \
+    --save_h5_root './embedding_features'
+```
+
+We run the following script to merge the features from three models for each sample into a single file, which is stored in ​**​5.Patch_spatial_gene_prediction/CRC-inhouse/embedding_features/merged​**​.
+```bash
+python CRC_features_merge.py
+```
+
+##### Single foundation model
+- CHIEF
+```bash
+python CRC_single_concat_main.py \
+    --feature_type 'CHIEF' \
+    --batch_size 512 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/CHIEF_v1'
+```
+
+For GigaPath and UNI model​​, we only need to adjust the **--feature_type** to 'GigaPath' & 'UNI' and the **--output_root** to corresponding folder name, and all other parameters are kept the same.
+
+##### Concatenation
+```bash
+python CRC_single_concat_main.py \
+    --feature_type 'Concat' \
+    --batch_size 512 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/Concat_v1'
+```
+
+##### Self-attention
+```bash
+python CRC_self_attention_main.py \
+    --feature_num 3328 \
+    --embed_dim 1024 \
+    --num_heads 8 \
+    --batch_size 512 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/self_attention_v1'
+```
+
+##### Cross-attention
+```bash
+python CRC_cross_attention_main.py \
+    --features_list 'GigaPath' 'UNI' 'CHIEF' \
+    --embed_dim 1024 \
+    --num_heads 8 \
+    --batch_size 512 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results/cross_attention_v1'
+```
+
+##### Contrastive-loss
+```bash
+python CRC_contrastive_loss_main.py \
+    --features_list 'GigaPath' 'UNI' 'CHIEF' \
+    --embed_dim 1024 \
+    --batch_size 256 \
+    --epochs_num 10 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --contrastive_weight 0.1 \
+    --output_root './results/contrastive_loss_v1'
+```
+
+#### VI. High-dimensional bulk gene expression prediction based on WSI-level features
+In **./6.WSI_bulk_gene_prediction** directory
+
 
 
 #### Reference
@@ -541,3 +725,5 @@ python TCGA_mutation_self_attention_main.py \
 [5] Shaikovski, G., et al., Prism: A multi-modal generative foundation model for slide-level histopathology. arXiv preprint arXiv:2405.10254, 2024.
 
 [6] Lu, M.Y., et al., Data-efficient and weakly supervised computational pathology on whole-slide images. Nature biomedical engineering, 2021. 5(6): p. 555-570.
+
+[7] Jaume, G., et al., Hest-1k: A dataset for spatial transcriptomics and histology image analysis. Advances in Neural Information Processing Systems, 2024. 37: p. 53798-53833.
