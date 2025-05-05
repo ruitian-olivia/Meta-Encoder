@@ -1,4 +1,4 @@
-### Do we need features fusion across multiple pathological foundation models for downstream tasks fine-tuning?
+### Features fusion or not: harnessing multiple pathological foundation models using meta-encoder for downstream tasks fine-tuning
 
 #### Patch-level pathological foundation models
 
