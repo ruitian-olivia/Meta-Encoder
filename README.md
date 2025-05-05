@@ -794,6 +794,7 @@ python breast_cross_attention_main.py \
     --output_root './results/cross_attention_v1'
 ```
 
+##### Contrastive-loss
 ```bash
 python breast_contrastive_loss_main.py \
     --features_list 'GigaPath' 'UNI' 'CHIEF' \
@@ -809,8 +810,290 @@ python breast_contrastive_loss_main.py \
 
 #### VI. High-dimensional bulk gene expression prediction based on WSI-level features
 In **./6.WSI_bulk_gene_prediction** directory
+All data were partitioned using five-fold cross-validation, repeated ten times to generate ten distinct data splits. The dataset division results are stored in Folder **./6.WSI_bulk_gene_prediction/splits_five_fold**. Bulk mRNA expression information is saved in Folder **./6.WSI_bulk_gene_prediction/target_genes_information**.
+
+The extracted features for TCGA-BRCA, TCGA-NSCLC, and TCGA-CRC are stored in the **​​FEATURES_DIRECTORY_PRISM_WSI_features**​​ and **​​FEATURES_DIRECTORY_TITAN_WSI_features**​​ folders under ​**​./2.WSI_subtyping/embedding_features/BRCA**​​, **​​./2.WSI_subtyping/embedding_features/NSCLC​**​, and ​**​./2.WSI_subtyping/embedding_features/CRC**, respectively. Each WSI's features are saved as a separate ​​.pt​​ file. 
 
 
+##### Single foundation model
+- TITAN
+- TCGA-BRCA
+
+```bash
+python TCGA_mRNA_single_main.py \
+    --feature_type 'TITAN' \
+    --latent_dim 512 \
+    --cancer_type 'BRCA' \
+    --batch_size 256 \
+    --epochs_num 300 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'single_TITAN' \
+    --coef_weight 50
+```
+
+- TCGA-NSCLC
+```bash
+python TCGA_mRNA_single_main.py \
+    --feature_type 'TITAN' \
+    --latent_dim 512 \
+    --cancer_type 'NSCLC' \
+    --batch_size 256 \
+    --epochs_num 300 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'single_TITAN' \
+    --coef_weight 50
+```
+
+- TCGA-CRC
+
+```bash
+python TCGA_mRNA_single_main.py \
+    --feature_type 'TITAN' \
+    --latent_dim 512 \
+    --cancer_type 'CRC' \
+    --batch_size 256 \
+    --epochs_num 800 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'single_TITAN' \
+    --coef_weight 50
+```
+
+For PRISM model​​, we only need to adjust the **--feature_type** to 'PRISM' and the **--version** to corresponding name, and all other parameters are kept the same.
+
+##### Concatenation
+- TCGA-BRCA
+```bash
+python TCGA_mRNA_concat_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_num 2048 \
+    --latent_dim 512 \
+    --cancer_type 'BRCA' \
+    --batch_size 256 \
+    --epochs_num 300 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'concat' \
+    --coef_weight 50
+```
+
+- TCGA-NSCLC
+```bash
+python TCGA_mRNA_concat_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_num 2048 \
+    --latent_dim 512 \
+    --cancer_type 'NSCLC' \
+    --batch_size 256 \
+    --epochs_num 300 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'concat' \
+    --coef_weight 50
+```
+
+- TCGA-CRC
+```bash
+python TCGA_mRNA_concat_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_num 2048 \
+    --latent_dim 512 \
+    --cancer_type 'CRC' \
+    --batch_size 256 \
+    --epochs_num 800 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'concat' \
+    --coef_weight 50
+```
+
+##### Self-attention
+- TCGA-BRCA
+```bash
+python TCGA_mRNA_self_attention_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_num 2048 \
+    --latent_dim 512 \
+    --cancer_type 'BRCA' \
+    --batch_size 256 \
+    --epochs_num 300 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'self_attention' \
+    --coef_weight 50 \
+    --embed_dim 1024 \
+    --num_heads 8
+```
+
+- TCGA-NSCLC
+```bash
+python TCGA_mRNA_self_attention_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_num 2048 \
+    --latent_dim 512 \
+    --cancer_type 'NSCLC' \
+    --batch_size 256 \
+    --epochs_num 300 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'self_attention' \
+    --coef_weight 50 \
+    --embed_dim 1024 \
+    --num_heads 8
+```
+
+- TCGA-CRC
+```bash
+python TCGA_mRNA_self_attention_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_num 2048 \
+    --latent_dim 512 \
+    --cancer_type 'CRC' \
+    --batch_size 256 \
+    --epochs_num 800 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'self_attention' \
+    --coef_weight 50 \
+    --embed_dim 1024 \
+    --num_heads 8
+```
+
+##### Cross-attention
+- TCGA-BRCA
+```bash
+python TCGA_mRNA_cross_attention_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_size_list 768 1280 \
+    --latent_dim 512 \
+    --cancer_type 'BRCA' \
+    --batch_size 256 \
+    --epochs_num 300 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'cross_attention' \
+    --coef_weight 50 \
+    --embed_dim 1024 \
+    --num_heads 8
+```
+
+- TCGA-NSCLC
+```bash
+python TCGA_mRNA_cross_attention_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_size_list 768 1280 \
+    --latent_dim 512 \
+    --cancer_type 'NSCLC' \
+    --batch_size 256 \
+    --epochs_num 300 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'cross_attention' \
+    --coef_weight 50 \
+    --embed_dim 1024 \
+    --num_heads 8
+```
+
+- TCGA-CRC
+```bash
+python TCGA_mRNA_cross_attention_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_size_list 768 1280 \
+    --latent_dim 512 \
+    --cancer_type 'CRC' \
+    --batch_size 256 \
+    --epochs_num 800 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'cross_attention' \
+    --coef_weight 50 \
+    --embed_dim 1024 \
+    --num_heads 8
+```
+
+##### Contrastive-loss
+- TCGA-BRCA
+```bash
+python TCGA_mRNA_contrastive_loss_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_size_list 768 1280 \
+    --latent_dim 512 \
+    --cancer_type 'BRCA' \
+    --batch_size 256 \
+    --epochs_num 300 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'contrastive_loss' \
+    --coef_weight 50 \
+    --common_dim 512 \
+    --contrastive_weight 0.01
+```
+
+- TCGA-NSCLC
+```bash
+python TCGA_mRNA_contrastive_loss_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_size_list 768 1280 \
+    --latent_dim 512 \
+    --cancer_type 'NSCLC' \
+    --batch_size 256 \
+    --epochs_num 300 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'contrastive_loss' \
+    --coef_weight 50 \
+    --common_dim 512 \
+    --contrastive_weight 0.01
+```
+
+- TCGA-CRC
+```bash
+python TCGA_mRNA_contrastive_loss_main.py \
+    --feature_types 'TITAN' 'PRISM' \
+    --feature_size_list 768 1280 \
+    --latent_dim 512 \
+    --cancer_type 'CRC' \
+    --batch_size 256 \
+    --epochs_num 800 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-6 \
+    --output_root './results' \
+    --version 'contrastive_loss' \
+    --coef_weight 50 \
+    --common_dim 1024 \
+    --contrastive_weight 0.1
+```
 
 #### Reference
 [1] Wang, X., et al., A pathology foundation model for cancer diagnosis and prognosis prediction. Nature, 2024. 634(8035): p. 970-978.
