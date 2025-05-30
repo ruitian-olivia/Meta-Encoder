@@ -1,4 +1,4 @@
-### Features fusion or not: harnessing multiple pathological foundation models using meta-encoder for downstream tasks fine-tuning
+### Features fusion or not: harnessing multiple pathological foundation models using Meta-Encoder for downstream tasks fine-tuning
 
 #### Patch-level pathological foundation models
 
