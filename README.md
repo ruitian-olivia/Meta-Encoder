@@ -322,10 +322,172 @@ python TCGA_subtyping_self_attention_main.py \
     --num_heads 8
 ```
 
-#### III. Multi-class classification for patches in the HE-CRC-100K dataset 
-In **./3.CRC100k_multi_class** directory
+#### III. CLAM-based patch-level features fusion for cancer prognosis
+In **./3.CLAM_patch_prognosis** directory
 
-The [HE-CRC-100K](https://zenodo.org/records/1214456) dataset contains patches from 9 distinct labels. The dataset has a predefined train/test split, with the corresponding indices and encoded labels stored in **​​./3.CRC100k_multi_class/NCT-CRC-HE-100k/split_index**​​.  Patch-level features are extracted using three patch-level foundation models, and these features are stored in the ​**​CHIEF**​​, **​​GigaPath**​​, and ​**​UNI**​​ folders under ​**​./3.CRC100k_multi_class/NCT-CRC-HE-100k​**​.
+For cancer prognosis prediction on WSIs from the TCGA dataset, we utilized three patch-level foundation models to extract patch features, followed by downstream fine-tuning using the CLAM framework,  which was specifically adapted for prognosis prediction tasks.​ 
+
+The survival data from the TCGA BRCA cohort was evaluated using a three-fold cross-validation scheme. For each split, the model was trained on two folds and tested on the held-out fold. Stratification was performed to ensure consistent censoring rates across all folds, preserving the distribution of survival data. To evaluate model robustness, this entire three-fold cross-validation procedure was repeated across ten different random data partitions.
+
+```bash
+python surv_data_CV_splits.csv
+```
+
+##### Single foundation model
+In **./3.CLAM_patch_prognosis/surv_single** directory
+
+- CHIEF
+```bash
+python main_BRCA_surv.py --drop_out  \
+  --exp_code BRCA_CHIEF_train \
+  --split_dir "../splits_csv_file" \
+  --bag_loss ce \
+  --inst_loss svm --task task_3_tumor_survival --model_type clam_sb \
+  --log_data --subtyping \
+  --data_root_dir "../../1.CLAM_patch_subtyping/CLAM_feature/BRCA/FEATURES_DIRECTORY_CHIEF" \
+  --seed 123 --lr 2e-4 \
+  --max_epochs 5 \
+  --encoding_size 768 \
+  --csv_path "../BRCA_surv_label.csv"
+```
+
+- GigaPath
+```bash
+python main_BRCA_surv.py --drop_out  \
+  --exp_code BRCA_gigapath_train \
+  --split_dir "../splits_csv_file" \
+  --bag_loss ce \
+  --inst_loss svm --task task_3_tumor_survival --model_type clam_sb \
+  --log_data --subtyping \
+  --data_root_dir "../../1.CLAM_patch_subtyping/CLAM_feature/BRCA/FEATURES_DIRECTORY_gigapath" \
+  --seed 123 --lr 2e-4 \
+  --max_epochs 5 \
+  --encoding_size 1536 \
+  --csv_path "../BRCA_surv_label.csv" \
+```
+
+- UNI
+```bash
+python main_BRCA_surv.py --drop_out  \
+  --exp_code BRCA_UNI_train \
+  --split_dir "../splits_csv_file" \
+  --bag_loss ce \
+  --inst_loss svm --task task_3_tumor_survival --model_type clam_sb \
+  --log_data --subtyping \
+  --data_root_dir "../../1.CLAM_patch_subtyping/CLAM_feature/BRCA/FEATURES_DIRECTORY_UNI" \
+  --seed 123 --lr 2e-4 \
+  --max_epochs 5 \
+  --encoding_size 1024 \
+  --csv_path "../BRCA_surv_label.csv"
+```
+
+##### Concatenation
+In **./3.CLAM_patch_prognosis/surv_concat** directory
+
+```bash
+python main_BRCA_concat_surv.py --drop_out --early_stopping  \
+  --exp_code BRCA_concat_train \
+  --split_dir "../splits_csv_file" \
+  --bag_loss ce \
+  --inst_loss svm --task task_3_tumor_survival --model_type clam_sb \
+  --log_data --subtyping \
+  --data_root_dir "../../1.CLAM_patch_subtyping/CLAM_feature/BRCA/FEATURES_CHIEF_gigapath_UNI" \
+  --seed 123 --lr 2e-4 \
+  --max_epochs 5 \
+  --encoding_size 3328 \
+  --csv_path "../BRCA_surv_label.csv" \
+  --features_list "FEATURES_DIRECTORY_CHIEF" "FEATURES_DIRECTORY_gigapath" "FEATURES_DIRECTORY_UNI"
+```
+
+##### Self-attention
+In **./3.CLAM_patch_prognosis/surv_self_attention** directory
+
+```bash
+python main_BRCA_self_atten_surv.py --drop_out --early_stopping  \
+  --exp_code BRCA_self_atten_train_v1 \
+  --split_dir "/data/home/scv7400/run/FM_collaboration/4.1.CLAM_surv/surv_data/splits_file" \
+  --bag_loss ce \
+  --inst_loss svm --task task_3_tumor_survival --model_type clam_sb \
+  --log_data --subtyping \
+  --data_root_dir "/data/home/scv7400/run/FM_collaboration/CLAM_feature/BRCA/FEATURES_CHIEF_gigapath_UNI" \
+  --seed 123 --lr 2e-4 \
+  --max_epochs 5 \
+  --encoding_size 3328 \
+  --csv_path "/data/home/scv7400/run/FM_collaboration/4.1.CLAM_surv/surv_data/BRCA_surv_label.csv" \
+  --features_list "FEATURES_DIRECTORY_CHIEF" "FEATURES_DIRECTORY_gigapath" "FEATURES_DIRECTORY_UNI"
+```
+
+#### IV. WSI-level features fusion for cancer prognosis
+
+In **./4.WSI_prognosis** directory
+
+##### Single foundation model
+- TITAN
+```bash
+python TCGA_surv_MLP_main_single.py \
+    --feature_type 'TITAN' \
+    --latent_dim 128 \
+    --cancer_type 'BRCA' \
+    --batch_size 256 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-5 \
+    --output_root './results' \
+    --version 'TITAN_MLP_surv'
+```
+
+- PRISM
+```bash
+python TCGA_surv_MLP_main_single.py \
+    --feature_type 'PRISM' \
+    --latent_dim 128 \
+    --cancer_type 'BRCA' \
+    --batch_size 256 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-5 \
+    --output_root './results' \
+    --version 'PRISM_MLP_surv' \
+```
+
+##### Concatenation
+```bash
+python TCGA_surv_MLP_main_concat.py \
+    --feature_list 'TITAN' 'PRISM' \
+    --latent_dim 128 \
+    --cancer_type 'BRCA' \
+    --batch_size 256 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-5 \
+    --output_root './results' \
+    --version 'concat_MLP_surv'
+```
+
+##### Self-attention
+```bash
+python TCGA_surv_MLP_main_self_attention.py \
+    --feature_list 'TITAN' 'PRISM' \
+    --latent_dim 128 \
+    --cancer_type 'BRCA' \
+    --batch_size 256 \
+    --epochs_num 20 \
+    --n_cycles 1 \
+    --lr 1e-4 \
+    --min_lr 1e-5 \
+    --output_root './results' \
+    --version 'self_MLP_surv' \
+    --embed_dim 512 \
+    --num_heads 4
+```
+
+#### V. Multi-class classification for patches in the HE-CRC-100K dataset 
+In **./5.CRC100k_multi_class** directory
+
+The [HE-CRC-100K](https://zenodo.org/records/1214456) dataset contains patches from 9 distinct labels. The dataset has a predefined train/test split, with the corresponding indices and encoded labels stored in **​​./5.CRC100k_multi_class/NCT-CRC-HE-100k/split_index**​​.  Patch-level features are extracted using three patch-level foundation models, and these features are stored in the ​**​CHIEF**​​, **​​GigaPath**​​, and ​**​UNI**​​ folders under ​**​./5.CRC100k_multi_class/NCT-CRC-HE-100k​**​.
 
 ##### Single foundation model
 To ensure robustness, each experiment is repeated ten times, and the mean and standard deviation of performance metrics are reported. 
@@ -410,12 +572,12 @@ python CRC100k_linear_probe_main_cross_attention.py \
     --output_root './results/self_attention_rep10'
 ```
 
-#### IV. Multi-Label prediction of tumor biomarkers using WSI-Level representations
-In **./4.WSI_multi_label_prediction** directory
+#### VI. Multi-Label prediction of tumor biomarkers using WSI-Level representations
+In **./6.WSI_multi_label_prediction** directory
 
-All data were partitioned using five-fold cross-validation, repeated ten times to generate ten distinct data splits. The dataset division results are stored in Folder **./4.WSI_multi_label_prediction/splits_five_fold**. Biomarker-related information is saved in Folder **./4.WSI_multi_label_prediction/biomarker_info**.
+All data were partitioned using five-fold cross-validation, repeated ten times to generate ten distinct data splits. The dataset division results are stored in Folder **./6.WSI_multi_label_prediction/splits_five_fold**. Biomarker-related information is saved in Folder **./6.WSI_multi_label_prediction/biomarker_info**.
 
-The extracted features for TCGA-BRCA and TCGA-CRC are stored in the **​​FEATURES_DIRECTORY_PRISM_WSI_features**​​ and **​​FEATURES_DIRECTORY_TITAN_WSI_features**​​ folders under ​**​./4.WSI_multi_label_prediction/embedding_features/BRCA**​​ and **​​./4.WSI_multi_label_prediction/embedding_features/CRC​**​, respectively. Each WSI's features are saved as a separate ​​.pt​​ file. 
+The extracted features for TCGA-BRCA and TCGA-CRC are stored in the **​​FEATURES_DIRECTORY_PRISM_WSI_features**​​ and **​​FEATURES_DIRECTORY_TITAN_WSI_features**​​ folders under ​**​./6.WSI_multi_label_prediction/embedding_features/BRCA**​​ and **​​./6.WSI_multi_label_prediction/embedding_features/CRC​**​, respectively. Each WSI's features are saved as a separate ​​.pt​​ file. 
 
 ##### Single foundation model
 - TITAN
@@ -431,7 +593,7 @@ python TCGA_mutation_single_main.py \
     --lr 1e-4 \
     --min_lr 1e-6 \
     --output_root './results' \
-    --version 'TITAN_focal_v1' \
+    --version 'TITAN_focal' \
     --predict_genes 'TP53' 'PIK3CA' 'CDH1' \
     --alpha_values 0.6 0.6 0.9
 ```
@@ -447,7 +609,7 @@ python TCGA_mutation_single_main.py \
     --lr 1e-4 \
     --min_lr 1e-6 \
     --output_root './results' \
-    --version 'TITAN_focal_v1' \
+    --version 'TITAN_focal' \
     --predict_genes 'RAS' 'BRAF' 'MSI'\
     --alpha_values 0.5 0.8 0.8
 ```
@@ -467,7 +629,7 @@ python TCGA_mutation_concat_main.py \
     --lr 1e-4 \
     --min_lr 1e-6 \
     --output_root './results' \
-    --version 'concat_focal_v1' \
+    --version 'concat_focal' \
     --predict_genes 'TP53' 'PIK3CA' 'CDH1' \
     --alpha_values 0.6 0.6 0.9
 ```
@@ -484,7 +646,7 @@ python TCGA_mutation_concat_main.py \
     --lr 1e-4 \
     --min_lr 1e-6 \
     --output_root './results' \
-    --version 'concat_focal_v1' \
+    --version 'concat_focal' \
     --predict_genes 'RAS' 'BRAF' 'MSI'\
     --alpha_values 0.5 0.8 0.8
 ```
@@ -502,7 +664,7 @@ python TCGA_mutation_self_attention_main.py \
     --lr 1e-4 \
     --min_lr 1e-6 \
     --output_root './results' \
-    --version 'CA_focal_v1' \
+    --version 'CA_focal' \
     --predict_genes 'TP53' 'PIK3CA' 'CDH1' \
     --alpha_values 0.6 0.6 0.9 \
     --embed_dim 1024 \
@@ -521,19 +683,146 @@ python TCGA_mutation_self_attention_main.py \
     --lr 1e-4 \
     --min_lr 1e-6 \
     --output_root './results' \
-    --version 'self_attention_focal_v1' \
+    --version 'self_attention_focal' \
     --predict_genes 'RAS' 'BRAF' 'MSI'\
     --alpha_values 0.5 0.8 0.8 \
     --embed_dim 1024 \
     --num_heads 8
 ```
-#### V. High-dimensional spatial gene expression prediction using patch-level features
+
+#### VII.  Multiplex protein quantification based on patch-level histological features
+
+##### Data download and preprocessing
+In **./7.Patch_multiplex_protein_quantification/Orion-CRC** directory
+
+We further quantify multiplex proteins from histology images using the ORION-CRC dataset[7], which includes the HE-stained histological images and mIHC of the same colorectal cancer tissue slide. The objective is to predict the cell counts for 15 specific protein markers within each HE-stained image patch. 
+
+First, the preprocessed [ORION-CRC](https://zenodo.org/records/15340874) dataset from a previous study[8] is downloaded. The file ORION_dataset_20x_he_norm.zipis saved in the **Orion-CRC**​​ directory and subsequently extracted. Additionally, the following metadata files are obtained: slide_dataframe.csv, train_dataframe.csv, val_dataframe.csv, and test_dataframe.csv.
+
+Within the **./7.Patch_multiplex_protein_quantification/preprocessing_data**, these CSV files are merged into a single consolidated file named ORION_HE_dataframe.csv. The resulting dataset comprises 37 whole-slide images (WSIs) obtained from different colorectal cancer patients.
+
+
+```bash
+python csv_files_merge.py
+```
+Extracted features by CHIEF, GigaPath and UNI models are saved in the directory ​**./7.Patch_multiplex_protein_quantification/preprocessed_data/HE_features**:
+
+```bash
+python get_Orion_feature_CHIEF.py
+
+python get_Orion_feature_UNI_GigaPath.py --model 'GigaPath'
+
+python get_Orion_feature_UNI_GigaPath.py --model 'UNI'
+```
+We selected 8 WSIs to form the test set, with the remaining 29 WSIs allocated to the training set. The corresponding feature files were subsequently converted into HDF5 format for efficient storage and access, and stored in the directory **./7.Patch_multiplex_protein_quantification/preprocessed_data/h5_files**.
+
+```bash
+python construct_HDF5_file.py
+```
+##### Single foundation model
+In **./7.Patch_multiplex_protein_quantification/count_prediction_single** directory
+
+- CHIEF
+```bash
+python marker_poisson_count_std_main.py \
+    --model_name 'CHIEF' \
+    --encoder_name 'CHIEF' \
+    --learning_rate 2e-4 \
+    --weight_decay 1e-4 \
+    --epochs 100 \
+    --patience 10 \
+    --batch_size 1024
+```
+
+- GigaPath
+```bash
+python marker_poisson_count_std_main.py \
+    --model_name 'GigaPath' \
+    --encoder_name 'GigaPath' \
+    --learning_rate 2e-4 \
+    --weight_decay 1e-4 \
+    --epochs 100 \
+    --patience 10 \
+    --batch_size 1024
+```
+
+- UNI
+```bash
+python marker_poisson_count_std_main.py \
+    --model_name 'UNI' \
+    --encoder_name 'UNI' \
+    --learning_rate 2e-4 \
+    --weight_decay 1e-4 \
+    --epochs 100 \
+    --patience 10 \
+    --batch_size 1024
+```
+
+##### Concatenation
+In **./7.Patch_multiplex_protein_quantification/count_prediction_concat** directory
+```bash
+python marker_poisson_count_std_concat_main.py \
+    --model_name 'Concat' \
+    --encoder_list 'CHIEF' 'GigaPath' 'UNI' \
+    --learning_rate 2e-4 \
+    --weight_decay 1e-4 \
+    --epochs 100 \
+    --patience 10 \
+    --batch_size 1024
+```
+
+##### Self-attention
+In **./7.Patch_multiplex_protein_quantification/count_prediction_self_attention** directory
+```bash
+python marker_poisson_count_std_self_main.py \
+    --model_name 'Self_attention' \
+    --encoder_list 'CHIEF' 'GigaPath' 'UNI' \
+    --embed_dim 1024 \
+    --num_heads 8 \
+    --learning_rate 2e-4 \
+    --weight_decay 1e-4 \
+    --epochs 100 \
+    --patience 10 \
+    --batch_size 1024
+```
+
+##### Cross-attention
+In **./7.Patch_multiplex_protein_quantification/count_prediction_cross_attention** directory
+```bash
+python marker_poisson_count_std_cross_attention_main.py \
+    --model_name 'Cross_attention' \
+    --encoder_list 'GigaPath' 'UNI' 'CHIEF' \
+    --embed_dim 1024 \
+    --num_heads 8 \
+    --learning_rate 2e-4 \
+    --weight_decay 1e-4 \
+    --epochs 100 \
+    --patience 10 \
+    --batch_size 1024
+```
+
+##### Contrastive-loss
+In **./7.Patch_multiplex_protein_quantification/count_prediction_contrastive_loss** directory
+```bash
+python marker_poisson_count_std_CL_main.py \
+    --model_name 'CL' \
+    --encoder_list 'GigaPath' 'UNI' 'CHIEF' \
+    --embed_dim 1024 \
+    --learning_rate 2e-4 \
+    --weight_decay 1e-4 \
+    --contrastive_weight 10 \
+    --epochs 100 \
+    --patience 10 \
+    --batch_size 512
+```
+
+#### VIII. High-dimensional spatial gene expression prediction using patch-level features
 ##### HEST-benchmark
-In **./5.Patch_spatial_gene_prediction/HEST-benchmark** directory
+In **./8.Patch_spatial_gene_prediction/HEST-benchmark** directory
 
-The [HEST-benchmark](https://huggingface.co/datasets/MahmoodLab/hest-bench) defines nine tasks using data from eight human cancer types across nine organs, including eight primary and one metastatic dataset[7]. The downloaded dataset is saved in folder **./5.Patch_spatial_gene_prediction/HEST-benchmark/hest-bench**. Three patch-level foundation models were used to extract features from the patches in HEST-benchmark. The extracted features are stored in folders **CHIEF**, **GigaPath**, and **UNI** under **5.Patch_spatial_gene_prediction/HEST-benchmark/embedding_features**. Each folder contains 9 subfolders named after the respective tasks, including CCRCC, COAD, HCC, IDC, LUNG, LYMPH_IDC, PAAD, PRAD, READ, and SKCM. For each task, the information and extracted features of every ST sample are saved as individual .h5 files.
+The [HEST-benchmark](https://huggingface.co/datasets/MahmoodLab/hest-bench) defines nine tasks using data from eight human cancer types across nine organs, including eight primary and one metastatic dataset[9]. The downloaded dataset is saved in folder **./8.Patch_spatial_gene_prediction/HEST-benchmark/hest-bench**. Three patch-level foundation models were used to extract features from the patches in HEST-benchmark. The extracted features are stored in folders **CHIEF**, **GigaPath**, and **UNI** under **8.Patch_spatial_gene_prediction/HEST-benchmark/embedding_features**. Each folder contains 9 subfolders named after the respective tasks, including CCRCC, COAD, HCC, IDC, LUNG, LYMPH_IDC, PAAD, PRAD, READ, and SKCM. For each task, the information and extracted features of every ST sample are saved as individual .h5 files.
 
-We run the following script to merge the features from three models for each sample into a single file, which is stored in ​**​5.Patch_spatial_gene_prediction/HEST-benchmark/embedding_features/merged​**​.
+We run the following script to merge the features from three models for each sample into a single file, which is stored in ​**​8.Patch_spatial_gene_prediction/HEST-benchmark/embedding_features/merged​**​.
 
 ```bash
 python benchmark_features_merge.py
@@ -609,14 +898,14 @@ python HEST_contrastive_loss_main.py \
 ```
 
 ##### CRC-inhouse
-In **./5.Patch_spatial_gene_prediction/CRC-inhouse** directory
+In **./8.Patch_spatial_gene_prediction/CRC-inhouse** directory
 First, convert the 10x Visium ST data into HEST format, then we extract features of the spot-corresponding patch regions using different patch-level foundation models.
 
-The Visium-format CRC-inhouse samples are stored in ​**​./5.Patch_spatial_gene_prediction/CRC-inhouse/dataset/Visium_format​**​, with each sample as an individual folder containing filtered_feature_bc_matrix.h5, a spatial folder, and the high-resolution histology image (HE_image/histology.tiff). Converted HEST-fortmat CRC-inhouse samples are stored in ​**​./5.Patch_spatial_gene_prediction/CRC-inhouse/dataset/HEST_format​**.
+The Visium-format CRC-inhouse samples are stored in ​**​./8.Patch_spatial_gene_prediction/CRC-inhouse/dataset/Visium_format​**​, with each sample as an individual folder containing filtered_feature_bc_matrix.h5, a spatial folder, and the high-resolution histology image (HE_image/histology.tiff). Converted HEST-fortmat CRC-inhouse samples are stored in ​**​./8.Patch_spatial_gene_prediction/CRC-inhouse/dataset/HEST_format​**.
 ```bash
 python CRC_HEST_setup.py
 ```
-Extracted features by CHIEF, GigaPath and UNI models are saved in ​**​./5.Patch_spatial_gene_prediction/CRC-inhouse/embedding_features​**:
+Extracted features by CHIEF, GigaPath and UNI models are saved in ​**​./8.Patch_spatial_gene_prediction/CRC-inhouse/embedding_features​**:
 ```bash
 python get_ST_feature_CHIEF.py \
     --model 'CHIEF' \
@@ -634,7 +923,7 @@ python get_ST_feature_UNI_GigaPath.py \
     --save_h5_root './embedding_features'
 ```
 
-We run the following script to merge the features from three models for each sample into a single file, which is stored in ​**​5.Patch_spatial_gene_prediction/CRC-inhouse/embedding_features/merged​**​.
+We run the following script to merge the features from three models for each sample into a single file, which is stored in ​**​8.Patch_spatial_gene_prediction/CRC-inhouse/embedding_features/merged​**​.
 ```bash
 python CRC_features_merge.py
 ```
@@ -709,13 +998,13 @@ python CRC_contrastive_loss_main.py \
 ```
 
 ##### Her2ST
-In **./5.Patch_spatial_gene_prediction/Her2ST** directory
-The legacy ST-format [Her2ST](https://zenodo.org/records/4751624) samples are stored in ​**​./5.Patch_spatial_gene_prediction/Her2ST/dataset/legacy_ST_format​**​. Converted HEST-fortmat Her2ST samples are stored in ​**​./5.Patch_spatial_gene_prediction/Her2ST/dataset/HEST_format​**.
+In **./8.Patch_spatial_gene_prediction/Her2ST** directory
+The legacy ST-format [Her2ST](https://zenodo.org/records/4751624) samples are stored in ​**​./8.Patch_spatial_gene_prediction/Her2ST/dataset/legacy_ST_format​**​. Converted HEST-fortmat Her2ST samples are stored in ​**​./8.Patch_spatial_gene_prediction/Her2ST/dataset/HEST_format​**.
 
 ```bash
 python Her2ST_HEST_setup.py
 ```
-Extracted features by CHIEF, GigaPath and UNI models are saved in ​**​./5.Patch_spatial_gene_prediction/Her2ST/embedding_features​**:
+Extracted features by CHIEF, GigaPath and UNI models are saved in ​**​./8.Patch_spatial_gene_prediction/Her2ST/embedding_features​**:
 
 ```bash
 python get_breast_ST_feature_CHIEF.py \
@@ -734,7 +1023,7 @@ python get_breast_ST_feature_UNI_GigaPath.py \
     --save_h5_root './embedding_features'
 ```
 
-We run the following script to merge the features from three models for each sample into a single file, which is stored in ​**​5.Patch_spatial_gene_prediction/Her2ST/embedding_features/merged​**​.
+We run the following script to merge the features from three models for each sample into a single file, which is stored in ​**​8.Patch_spatial_gene_prediction/Her2ST/embedding_features/merged​**​.
 ```bash
 python Her2ST_features_merge.py
 ```
@@ -808,9 +1097,9 @@ python breast_contrastive_loss_main.py \
     --output_root './results/contrastive_loss_v1'
 ```
 
-#### VI. High-dimensional bulk gene expression prediction based on WSI-level features
-In **./6.WSI_bulk_gene_prediction** directory
-All data were partitioned using five-fold cross-validation, repeated ten times to generate ten distinct data splits. The dataset division results are stored in Folder **./6.WSI_bulk_gene_prediction/splits_five_fold**. Bulk mRNA expression information is saved in Folder **./6.WSI_bulk_gene_prediction/target_genes_information**.
+#### IX. High-dimensional bulk gene expression prediction based on WSI-level features
+In **./9.WSI_bulk_gene_prediction** directory
+All data were partitioned using five-fold cross-validation, repeated ten times to generate ten distinct data splits. The dataset division results are stored in Folder **./9.WSI_bulk_gene_prediction/splits_five_fold**. Bulk mRNA expression information is saved in Folder **./9.WSI_bulk_gene_prediction/target_genes_information**.
 
 The extracted features for TCGA-BRCA, TCGA-NSCLC, and TCGA-CRC are stored in the **​​FEATURES_DIRECTORY_PRISM_WSI_features**​​ and **​​FEATURES_DIRECTORY_TITAN_WSI_features**​​ folders under ​**​./2.WSI_subtyping/embedding_features/BRCA**​​, **​​./2.WSI_subtyping/embedding_features/NSCLC​**​, and ​**​./2.WSI_subtyping/embedding_features/CRC**, respectively. Each WSI's features are saved as a separate ​​.pt​​ file. 
 
@@ -1108,4 +1397,8 @@ python TCGA_mRNA_contrastive_loss_main.py \
 
 [6] Lu, M.Y., et al., Data-efficient and weakly supervised computational pathology on whole-slide images. Nature biomedical engineering, 2021. 5(6): p. 555-570.
 
-[7] Jaume, G., et al., Hest-1k: A dataset for spatial transcriptomics and histology image analysis. Advances in Neural Information Processing Systems, 2024. 37: p. 53798-53833.
+[7] Lin, J.-R., et al., High-plex immunofluorescence imaging and traditional histology of the same tissue section for discovering image-based biomarkers. Nature cancer, 2023. 4(7): p. 1036-1052.
+
+[8] Balezo, Guillaume, et al., MIPHEI-ViT: Multiplex Immunofluorescence Prediction from H&E Images using ViT Foundation Models. arXiv preprint arXiv:2505.10294, 2025.
+
+[9] Jaume, G., et al., Hest-1k: A dataset for spatial transcriptomics and histology image analysis. Advances in Neural Information Processing Systems, 2024. 37: p. 53798-53833.
