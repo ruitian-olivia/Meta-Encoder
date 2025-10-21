@@ -1,4 +1,4 @@
-### Features fusion or not: harnessing multiple pathological foundation models using Meta-Encoder for downstream tasks fine-tuning
+### Meta-Encoder: A Unified Aggregation Framework for Multiple Pathological Foundation Models in Cancer Detection
 
 #### Patch-level pathological foundation models
 
